@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Liana-wq1/my-first-go/internal/model"
+	"github.com/Liana-wq1/my-first-go/internal/repository"
 	"github.com/Liana-wq1/my-first-go/internal/service"
 )
 
@@ -65,6 +66,10 @@ func main() {
 	fmt.Printf("Booking: id=%d, status=%s\n", b.ID, b.Status)
 	fmt.Printf("Notification: status=%s at %s\n", n.Status, n.SentAt.Format("2006-01-02 15:04:05"))
 
-	go service.StartGenerator(5 * time.Second)
+	ch := make(chan model.Entity)
+
+	go repository.StartSaver(ch)
+	go repository.NewItemsLogger(200 * time.Millisecond)
+	go service.StartGenerator(ch, 2*time.Second)
 	select {}
 }
