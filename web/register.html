@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Регистрация</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .form-container {
+            background: #fff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            width: 350px;
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background: #4c8bf5;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background: #376fdc;
+        }
+
+        .back-btn {
+            background: #aaa;
+        }
+
+        .back-btn:hover {
+            background: #888;
+        }
+
+        .success-message {
+            color: green;
+            font-size: 18px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="form-container">
+    <h2>Регистрация</h2>
+
+    <form id="registerForm">
+        <input type="text" id="name" placeholder="Имя" />
+        <input type="text" id="surname" placeholder="Фамилия" />
+        <input type="email" id="email" placeholder="Email" />
+        <input type="password" id="password" placeholder="Пароль" />
+
+        <button type="button" onclick="submitForm()">Зарегистрироваться</button>
+        <button type="button" class="back-btn" onclick="location.href='/'">Назад</button>
+    </form>
+
+    <div id="successBox"></div>
+</div>
+
+<script>
+    function submitForm() {
+        const payload = {
+            name: document.getElementById('name').value,
+            surname: document.getElementById('surname').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+        };
+
+        fetch("/api/register", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        }).then(async res => {
+            const msg = await res.text();
+
+            if (res.ok) {
+                document.getElementById("successBox").innerHTML =
+                    `<p class="success-message">Регистрация успешна пройдена!</p>`;
+
+                document.getElementById("registerForm").reset();
+
+                setTimeout(() => {
+                    window.location.href = "/";
+                }, 3000);
+
+            } else {
+                alert("Ошибка: " + msg);
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

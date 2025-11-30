@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Афиша Концертов</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+        }
+
+        .header {
+            background: #4c8bf5;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .user-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 100px;
+            font-size: 36px;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="header">
+    <div></div> <!-- пустое место, чтобы заголовок был по центру -->
+
+    <strong>Афиша Концертов</strong>
+
+    <div class="user-badge">
+        <img id="avatar" class="user-avatar" src="" alt="avatar">
+        <div id="username"></div>
+    </div>
+</div>
+
+<h1>Скоро здесь появятся концерты 🎵</h1>
+
+<script>
+    const first = localStorage.getItem("firstName");
+    const last = localStorage.getItem("lastName");
+    const avatar = localStorage.getItem("avatarURL") || "https://via.placeholder.com/45";
+
+    document.getElementById("username").innerText = first + " " + last;
+    document.getElementById("avatar").src = avatar;
+</script>
+
+</body>
+</html>

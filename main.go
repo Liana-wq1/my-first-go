@@ -1,109 +1,41 @@
 package main
 
 import (
-	"context"
-	"fmt"
+	"log"
+	"net/http"
 	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
 
-	"github.com/Liana-wq1/my-first-go/internal/model"
-	"github.com/Liana-wq1/my-first-go/internal/repository"
 	"github.com/Liana-wq1/my-first-go/internal/service"
+	"github.com/Liana-wq1/my-first-go/internal/storage"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// Пользователь (публичная модель)
-	u := model.User{
-		ID:        1,
-		FirstName: "Liana",
-		LastName:  "Khalatyan",
-		Email:     "liana22117@gmail.com",
-		Phone:     "+995500112233",
-		AvatarURL: "https://example.com/avatar.png",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+
+	// Загружаем переменные из .env
+	if err := godotenv.Load(); err != nil {
+		log.Println("WARNING: .env file not found, using system env")
 	}
 
-	// Данные для аутентификации (приватные поля через методы)
-	//creds := auth.NewCredentials(u.ID, "<bcrypt-hash>")
-	//creds.SetLastLoginAt(time.Now())
+	storage.InitSQLite()
 
-	// Концерт с ценой билета
-	c := model.Concert{
-		ID:             10,
-		Title:          "Symphonic Rock Night",
-		Date:           time.Now().Add(7 * 24 * time.Hour),
-		Location:       "Tbilisi Concert Hall",
-		TicketPrice:    1500.99,
-		TicketsTotal:   100,
-		TicketsLeft:    100,
-		OrganizerEmail: "organizer@example.com",
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
-	}
+	emailSender := service.NewEmailSender(
+		os.Getenv("SMTP_EMAIL"),
+		os.Getenv("SMTP_PASSWORD"),
+		os.Getenv("SMTP_HOST"),
+		os.Getenv("SMTP_PORT"),
+	)
 
-	// Бронь (используем константы статусов)
-	b := model.Booking{
-		ID:        1000,
-		UserID:    u.ID,
-		ConcertID: c.ID,
-		Status:    model.StatusPending,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
+	// статика (фронт)
+	http.Handle("/", http.FileServer(http.Dir("./web")))
 
-	// Запись об уведомлении
-	n := model.Notification{
-		ID:        5000,
-		UserID:    u.ID,
-		ConcertID: c.ID,
-		Status:    model.StatusSuccess,
-		SentAt:    time.Now(),
-	}
+	// API
+	http.HandleFunc("/api/register", func(w http.ResponseWriter, r *http.Request) {
+		service.RegisterHandler(w, r, emailSender)
+	})
+	http.HandleFunc("/api/login", service.LoginHandler)
+	http.HandleFunc("/api/confirm", service.ConfirmHandler)
 
-	// увидеть, что всё ок
-	fmt.Printf("User: %s %s, email=%s, phone=%s\n", u.FirstName, u.LastName, u.Email, u.Phone)
-	//fmt.Println("Auth (privates via methods): userID=", creds.UserID(), "hash=", creds.PasswordHash())
-	fmt.Printf("Concert: %s @ %s, price=%.2f, left=%d\n", c.Title, c.Location, c.TicketPrice, c.TicketsLeft)
-	fmt.Printf("Booking: id=%d, status=%s\n", b.ID, b.Status)
-	fmt.Printf("Notification: status=%s at %s\n", n.Status, n.SentAt.Format("2006-01-02 15:04:05"))
-
-	// 1. Создаем context с отменой
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// 2. Ловим сигналы ОС (Ctrl+C)
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-	// 3. Канал данных
-	ch := make(chan model.Entity)
-
-	// 4. WaitGroup, дожидаемся всех горутин
-	var wg sync.WaitGroup
-
-	wg.Add(3) // в проекте из три горутины (ниже в пункте 5)
-
-	// 5. Запускаем горутины
-	go repository.StartSaver(ctx, &wg, ch)
-	go repository.NewItemsLogger(ctx, &wg, 200*time.Millisecond)
-	go service.StartGenerator(ctx, &wg, ch, 2*time.Second)
-
-	// 6. Ждем сигнала
-	<-sigCh
-	println("Получен сигнал, завершаем работу...")
-
-	// 7. Завершаем контекст → все горутины поймут ctx.Done()
-	cancel()
-
-	// 8. Закрываем канал (StartSaver перестанет читать)
-	close(ch)
-
-	// 9. Ждем завершения всех горутин
-	wg.Wait()
-
-	println("Все горутины завершены. Программа остановлена корректно.")
+	log.Println("Server started on http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
