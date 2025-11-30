@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/Liana-wq1/my-first-go/internal/model"
-	"github.com/Liana-wq1/my-first-go/internal/repository"
 	"github.com/Liana-wq1/my-first-go/internal/service"
 )
 
@@ -68,8 +67,8 @@ func main() {
 
 	ch := make(chan model.Entity)
 
-	go repository.StartSaver(ch)
-	go repository.NewItemsLogger(200 * time.Millisecond)
+	go service.StartSaver(ch)
+	go service.NewItemsLogger(200 * time.Millisecond)
 	go service.StartGenerator(ch, 2*time.Second)
 	select {}
 }
