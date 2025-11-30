@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Liana-wq1/my-first-go/internal/model"
+	"github.com/Liana-wq1/my-first-go/internal/service"
 )
 
 func main() {
@@ -63,4 +64,7 @@ func main() {
 	fmt.Printf("Concert: %s @ %s, price=%.2f, left=%d\n", c.Title, c.Location, c.TicketPrice, c.TicketsLeft)
 	fmt.Printf("Booking: id=%d, status=%s\n", b.ID, b.Status)
 	fmt.Printf("Notification: status=%s at %s\n", n.Status, n.SentAt.Format("2006-01-02 15:04:05"))
+
+	go service.StartGenerator(5 * time.Second)
+	select {}
 }
