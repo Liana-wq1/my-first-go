@@ -1,7 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/Liana-wq1/my-first-go/internal/model"
@@ -66,10 +71,39 @@ func main() {
 	fmt.Printf("Booking: id=%d, status=%s\n", b.ID, b.Status)
 	fmt.Printf("Notification: status=%s at %s\n", n.Status, n.SentAt.Format("2006-01-02 15:04:05"))
 
+	// 1. Создаем context с отменой
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// 2. Ловим сигналы ОС (Ctrl+C)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	// 3. Канал данных
 	ch := make(chan model.Entity)
 
-	go repository.StartSaver(ch)
-	go repository.NewItemsLogger(200 * time.Millisecond)
-	go service.StartGenerator(ch, 2*time.Second)
-	select {}
+	// 4. WaitGroup, дожидаемся всех горутин
+	var wg sync.WaitGroup
+
+	wg.Add(3) // в проекте из три горутины (ниже в пункте 5)
+
+	// 5. Запускаем горутины
+	go repository.StartSaver(ctx, &wg, ch)
+	go repository.NewItemsLogger(ctx, &wg, 200*time.Millisecond)
+	go service.StartGenerator(ctx, &wg, ch, 2*time.Second)
+
+	// 6. Ждем сигнала
+	<-sigCh
+	println("Получен сигнал, завершаем работу...")
+
+	// 7. Завершаем контекст → все горутины поймут ctx.Done()
+	cancel()
+
+	// 8. Закрываем канал (StartSaver перестанет читать)
+	close(ch)
+
+	// 9. Ждем завершения всех горутин
+	wg.Wait()
+
+	println("Все горутины завершены. Программа остановлена корректно.")
 }
